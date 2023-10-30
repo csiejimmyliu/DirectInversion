@@ -2,10 +2,11 @@ data
 __pycache__
 .vscode
 output
+new_output
+comapre_editing/
+comapre_inversion/
+
 *.csv
 *.out
 *.bash
 
-new_output
-comapre_editing/
-comapre_inversion/
