@@ -1,10 +1,8 @@
 import torch
 import torch.nn.functional as nnf
 import abc
-
 from utils.utils import get_word_inds, get_time_words_attention_alpha
 from models.p2p import seq_aligner
-
 MAX_NUM_WORDS = 77
 LATENT_SIZE = (64, 64)
 LOW_RESOURCE = False 

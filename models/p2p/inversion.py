@@ -177,6 +177,7 @@ class NullInversion:
         latent = latent.clone().detach()
         for i in range(self.num_ddim_steps):
             t = self.model.scheduler.timesteps[len(self.model.scheduler.timesteps) - i - 1]
+            #t from small to big
             noise_pred = self.get_noise_pred_single(latent, t, cond_embeddings)
             latent = self.next_step(noise_pred, t, latent)
             all_latent.append(latent)
@@ -190,6 +191,7 @@ class NullInversion:
     def ddim_inversion(self, image):
         latent = image2latent(self.model.vae, image)
         image_rec = latent2image(self.model.vae, latent)[0]
+        #vae reconstruction
         ddim_latents = self.ddim_loop(latent)
         return image_rec, ddim_latents
 
@@ -229,7 +231,7 @@ class NullInversion:
         register_attention_control(self.model, None)
         
         image_rec, ddim_latents = self.ddim_inversion(image_gt)
-        
+        # ddim_latents, t from 0 to T
         uncond_embeddings = self.null_optimization(ddim_latents, num_inner_steps, early_stop_epsilon,guidance_scale)
         return image_gt, image_rec, ddim_latents, uncond_embeddings
     
@@ -245,6 +247,7 @@ class NullInversion:
 class DirectInversion:
     
     def prev_step(self, model_output, timestep: int, sample):
+        # from T to 0
         prev_timestep = timestep - self.scheduler.config.num_train_timesteps // self.scheduler.num_inference_steps
         alpha_prod_t = self.scheduler.alphas_cumprod[timestep]
         alpha_prod_t_prev = self.scheduler.alphas_cumprod[prev_timestep] if prev_timestep >= 0 else self.scheduler.final_alpha_cumprod
@@ -260,6 +263,7 @@ class DirectInversion:
         return prev_sample,difference_scale
     
     def next_step(self, model_output, timestep: int, sample):
+        # from 0 to T
         timestep, next_timestep = min(timestep - self.scheduler.config.num_train_timesteps // self.scheduler.num_inference_steps, 999), timestep
         alpha_prod_t = self.scheduler.alphas_cumprod[timestep] if timestep >= 0 else self.scheduler.final_alpha_cumprod
         alpha_prod_t_next = self.scheduler.alphas_cumprod[next_timestep]
@@ -313,6 +317,7 @@ class DirectInversion:
         latent = latent.clone().detach()
         for i in range(self.num_ddim_steps):
             t = self.model.scheduler.timesteps[len(self.model.scheduler.timesteps) - i - 1]
+            #t from small to big
             noise_pred = self.get_noise_pred_single(latent, t, cond_embeddings)
             latent = self.next_step(noise_pred, t, latent)
             all_latent.append(latent)

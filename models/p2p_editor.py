@@ -215,6 +215,7 @@ class P2PEditor:
                                     num_ddim_steps=self.num_ddim_steps)
         _, _, x_stars, uncond_embeddings = null_inversion.invert(
             image_gt=image_gt, prompt=prompt_src,guidance_scale=guidance_scale)
+        # x_stars from 0 to T
         x_t = x_stars[-1]
 
         controller = AttentionStore()

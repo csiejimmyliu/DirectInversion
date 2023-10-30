@@ -4,7 +4,7 @@ import os
 import numpy as np
 from PIL import Image
 import csv
-from evaluation.matrics_calculator import MetricsCalculator
+from matrics_calculator import MetricsCalculator
 
 def mask_decode(encoded_mask,image_shape=[512,512]):
     length=image_shape[0]*image_shape[1]
@@ -243,7 +243,7 @@ if __name__=="__main__":
         data_row = ["file_id"]+csv_head
         csv_write.writerow(data_row)
 
-    with open(annotation_mapping_file,"r") as f:
+    with open(os.path.join(annotation_mapping_file),"r") as f:
         annotation_file=json.load(f)
 
     for key, item in annotation_file.items():

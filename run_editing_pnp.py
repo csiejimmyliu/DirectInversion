@@ -392,7 +392,8 @@ class PNP(nn.Module):
 
     def sample_loop(self, x,guidance_scale,noisy_latent):
         with torch.autocast(device_type='cuda', dtype=torch.float32):
-            for i, t in enumerate(self.scheduler.timesteps, desc="Sampling"):
+            #for i, t in enumerate(self.scheduler.timesteps, desc="Sampling"):
+            for i, t in enumerate(self.scheduler.timesteps):
                 x = self.denoise_step(x, t,guidance_scale,noisy_latent[-1-i])
 
             decoded_latent = self.decode_latent(x)
@@ -490,7 +491,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--rerun_exist_images', action= "store_true") # rerun existing images
     parser.add_argument('--data_path', type=str, default="data") # the editing category that needed to run
-    parser.add_argument('--output_path', type=str, default="output") # the editing category that needed to run
+    parser.add_argument('--output_path', type=str, default="new_output") # the editing category that needed to run
     parser.add_argument('--edit_category_list', nargs = '+', type=str, default=["0","1","2","3","4","5","6","7","8","9"]) # the editing category that needed to run
     parser.add_argument('--edit_method_list', nargs = '+', type=str, default=["ddim+pnp","directinversion+pnp"]) # the editing methods that needed to run
     args = parser.parse_args()

@@ -3,7 +3,7 @@ from torchvision.transforms import Resize
 from torchvision import transforms
 import torch.nn.functional as F
 import numpy as np
-from torchmetrics.multimodal import CLIPScore
+from torchmetrics.multimodal.clip_score import CLIPScore
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
 from torchmetrics.regression import MeanSquaredError

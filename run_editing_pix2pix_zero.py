@@ -88,7 +88,6 @@ def edit_image_ddim_pix2pix_zero(image_path,
     
     mean_emb_src = load_sentence_embeddings([prompt_src], edit_pipe.tokenizer, edit_pipe.text_encoder, device=device)
     mean_emb_tar = load_sentence_embeddings([prompt_tar], edit_pipe.tokenizer, edit_pipe.text_encoder, device=device)
-    
     rec_pil, edit_pil = edit_pipe(prompt_str,
                 num_inference_steps=NUM_DDIM_STEPS,
                 x_in=inversion_latent,
@@ -171,7 +170,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--rerun_exist_images', action= "store_true") # rerun existing images
     parser.add_argument('--data_path', type=str, default="data") # the editing category that needed to run
-    parser.add_argument('--output_path', type=str, default="output") # the editing category that needed to run
+    parser.add_argument('--output_path', type=str, default="new_output") # the editing category that needed to run
     parser.add_argument('--edit_category_list', nargs = '+', type=str, default=["0","1","2","3","4","5","6","7","8","9"]) # the editing category that needed to run
     parser.add_argument('--edit_method_list', nargs = '+', type=str, default=["ddim+pix2pix-zero","directinversion+pix2pix-zero"]) # the editing methods that needed to run
     args = parser.parse_args()
