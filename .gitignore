@@ -7,5 +7,5 @@ output
 *.bash
 
 new_output
-comapre_editing
-comapre_inversion
+comapre_editing/
+comapre_inversion/
