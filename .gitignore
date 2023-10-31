@@ -5,6 +5,8 @@ output
 new_output
 comapre_editing/
 comapre_inversion/
+results/
+random_0/
 
 *.csv
 *.out

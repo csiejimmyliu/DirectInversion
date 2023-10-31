@@ -176,7 +176,7 @@ all_tgt_image_folders={
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--annotation_mapping_file', type=str, default="data/mapping_file.json")
+    parser.add_argument('--annotation_mapping_file', type=str, default="../dataset/PIE/mapping_file.json")
     parser.add_argument('--metrics',  nargs = '+', type=str, default=[
                                                          "structure_distance",
                                                          "psnr_unedit_part",
@@ -187,11 +187,11 @@ if __name__=="__main__":
                                                          "clip_similarity_target_image",
                                                          "clip_similarity_target_image_edit_part",
                                                          ])
-    parser.add_argument('--src_image_folder', type=str, default="data/annotation_images")
+    parser.add_argument('--src_image_folder', type=str, default="../dataset/PIE/annotation_images")
     parser.add_argument('--tgt_methods', nargs = '+', type=str, default=[
-                                                                    "1_ddim+p2p", "1_null-text-inversion+p2p_a800",
-                                                                    "1_null-text-inversion+p2p_3090", "1_negative-prompt-inversion+p2p",
-                                                                    "1_stylediffusion+p2p", "1_directinversion+p2p",
+                                                                    "1_directinversion+p2p",
+                                                                    "1_directinversion+masactrl",
+                                                                    "1_directinversion+pnp",
                                                                   ])
     parser.add_argument('--result_path', type=str, default="evaluation_result.csv")
     parser.add_argument('--device', type=str, default="cuda")
@@ -249,7 +249,7 @@ if __name__=="__main__":
     for key, item in annotation_file.items():
         if item["editing_type_id"] not in edit_category_list:
             continue
-        print(f"evaluating image {key} ...")
+        #print(f"evaluating image {key} ...")
         base_image_path=item["image_path"]
         mask=mask_decode(item["mask"])
         original_prompt = item["original_prompt"].replace("[", "").replace("]", "")
@@ -265,7 +265,7 @@ if __name__=="__main__":
         
         for tgt_image_folder_key,tgt_image_folder in tgt_image_folders.items():
             tgt_image_path=os.path.join(tgt_image_folder, base_image_path)
-            print(f"evluating method: {tgt_image_folder_key}")
+            #print(f"evluating method: {tgt_image_folder_key}")
             
             tgt_image = Image.open(tgt_image_path)
             if tgt_image.size[0] != tgt_image.size[1]:
@@ -275,7 +275,7 @@ if __name__=="__main__":
                 # tgt_image = tgt_image.crop((tgt_image.size[0]-512*2,tgt_image.size[1]-512,tgt_image.size[0]-512,tgt_image.size[1])) 
             
             for metric in metrics:
-                print(f"evluating metric: {metric}")
+                #print(f"evluating metric: {metric}")
                 evaluation_result.append(calculate_metric(metrics_calculator,metric,src_image, tgt_image, mask, mask, original_prompt, editing_prompt))
                         
         with open(result_path,'a+',newline="") as f:
