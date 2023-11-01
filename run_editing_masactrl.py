@@ -13,7 +13,7 @@ from models.p2p.inversion import DirectInversion
 from models.masactrl.diffuser_utils import MasaCtrlPipeline
 from models.masactrl.masactrl_utils import AttentionBase
 from models.masactrl.masactrl_utils import regiter_attention_editor_diffusers
-from models.masactrl.masactrl import MutualSelfAttentionControl
+from models.masactrl.masactrl import MutualSelfAttentionControl,MutualSelfAttentionControlMaskAuto
 from utils.utils import load_512,txt_draw
 
 from torchvision.io import read_image
@@ -167,7 +167,117 @@ class MasaCtrlEditor:
         
         return Image.fromarray(out_image)
 
+class MasaCtrlMaskAutoEditor:
+    def __init__(self, method_list, device, num_ddim_steps=50) -> None:
+        self.device=device
+        self.method_list=method_list
+        self.num_ddim_steps=num_ddim_steps
+        # init model
+        self.scheduler = DDIMScheduler(beta_start=0.00085,
+                                    beta_end=0.012,
+                                    beta_schedule="scaled_linear",
+                                    clip_sample=False,
+                                    set_alpha_to_one=False)
+        self.model = MasaCtrlPipeline.from_pretrained(
+            "CompVis/stable-diffusion-v1-4", scheduler=self.scheduler).to(device)
+        self.model.scheduler.set_timesteps(self.num_ddim_steps)
 
+        
+    def __call__(self, 
+                edit_method,
+                image_path,
+                prompt_src,
+                prompt_tar,
+                guidance_scale,
+                step=4,
+                layper=10):
+        if edit_method=="ddim+masactrl":
+            return self.edit_image_ddim_MasaCtrl(image_path,prompt_src,prompt_tar,guidance_scale,step=step,layper=layper)
+        elif edit_method=="directinversion+masactrl":
+            return self.edit_image_directinversion_MasaCtrl(image_path,prompt_src,prompt_tar,guidance_scale,step=step,layper=layper)
+        else:
+            raise NotImplementedError(f"No edit method named {edit_method}")
+
+    def edit_image_directinversion_MasaCtrl(self,image_path,prompt_src,prompt_tar,guidance_scale,step=4,layper=10):
+        source_image=load_image(image_path, self.device)
+        image_gt = load_512(image_path)
+        
+        prompts=["", prompt_tar]
+        
+        null_inversion = DirectInversion(model=self.model,
+                                                num_ddim_steps=self.num_ddim_steps)
+        
+        _, image_enc_latent, x_stars, noise_loss_list = null_inversion.invert(
+            image_gt=image_gt, prompt=prompts, guidance_scale=guidance_scale)
+        x_t = x_stars[-1]
+        
+        # results of direct synthesis
+        editor = AttentionBase()
+        regiter_attention_editor_diffusers(self.model, editor)
+        image_fixed = self.model([prompt_tar],
+                            latents=x_t,
+                            num_inference_steps=self.num_ddim_steps,
+                            guidance_scale=guidance_scale,
+                            noise_loss_list=None)
+        
+        # hijack the attention module
+        editor = MutualSelfAttentionControlMaskAuto(step, layper)
+        regiter_attention_editor_diffusers(self.model, editor)
+
+        # inference the synthesized image
+        image_masactrl = self.model(prompts,
+                            latents= x_t.expand(len(prompts), -1, -1, -1),
+                            guidance_scale=guidance_scale,
+                            noise_loss_list=noise_loss_list)
+        
+        image_instruct = txt_draw(f"source prompt: {prompt_src}\ntarget prompt: {prompt_tar}")
+        
+        out_image=np.concatenate((
+                                np.array(image_instruct),
+                                ((source_image[0].permute(1,2,0).detach().cpu().numpy() * 0.5 + 0.5)*255).astype(np.uint8),
+                                (image_masactrl[0].permute(1,2,0).detach().cpu().numpy()*255).astype(np.uint8),
+                                (image_masactrl[-1].permute(1,2,0).detach().cpu().numpy()*255).astype(np.uint8)),1)
+        
+        return Image.fromarray(out_image)
+    
+    def edit_image_ddim_MasaCtrl(self, image_path,prompt_src,prompt_tar,guidance_scale,step=4,layper=10):
+        source_image=load_image(image_path, self.device)
+        
+        prompts=["", prompt_tar]
+        
+        start_code, latents_list = self.model.invert(source_image,
+                                            "",
+                                            guidance_scale=guidance_scale,
+                                            num_inference_steps=self.num_ddim_steps,
+                                            return_intermediates=True)
+        start_code = start_code.expand(len(prompts), -1, -1, -1)
+        
+        # results of direct synthesis
+        editor = AttentionBase()
+        regiter_attention_editor_diffusers(self.model, editor)
+        image_fixed = self.model([prompt_tar],
+                            latents=start_code[-1:],
+                            num_inference_steps=self.num_ddim_steps,
+                            guidance_scale=guidance_scale)
+        
+        # hijack the attention module
+        editor = MutualSelfAttentionControlMaskAuto(step, layper)
+        regiter_attention_editor_diffusers(self.model, editor)
+
+        # inference the synthesized image
+        image_masactrl = self.model(prompts,
+                            latents=start_code,
+                            guidance_scale=guidance_scale)
+        
+        image_instruct = txt_draw(f"source prompt: {prompt_src}\ntarget prompt: {prompt_tar}")
+        
+        out_image=np.concatenate((
+                                np.array(image_instruct),
+                                ((source_image[0].permute(1,2,0).detach().cpu().numpy() * 0.5 + 0.5)*255).astype(np.uint8),
+                                (image_masactrl[0].permute(1,2,0).detach().cpu().numpy()*255).astype(np.uint8),
+                                (image_masactrl[-1].permute(1,2,0).detach().cpu().numpy()*255).astype(np.uint8)),1)
+        
+        return Image.fromarray(out_image)
 
 
 image_save_paths={
